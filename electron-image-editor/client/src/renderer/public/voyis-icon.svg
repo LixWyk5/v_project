@@ -1,0 +1,7 @@
+<svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="192" height="192" rx="24" fill="#00030A"/>
+  
+  <!-- Yellow V -->
+  <path d="M 60 50 L 96 130 L 132 50 L 150 50 L 105 150 L 87 150 L 42 50 Z" fill="#FFD100"/>
+</svg>

@@ -1,0 +1,47 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: image-editor-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: imagedb
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./server/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d imagedb" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Server
+  api:
+    build:
+      context: ./server/api
+      dockerfile: Dockerfile
+    container_name: image-editor-api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://admin:password123@postgres:5432/imagedb
+      PORT: 3000
+    volumes:
+      - ./server/api:/app
+      - ./server/storage:/app/storage
+      - ./client/resources:/app/sample_images:ro
+      - ../test-images:/app/test-images:ro
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh /app/start.sh
+
+volumes:
+  postgres-data:

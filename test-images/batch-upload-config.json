@@ -1,0 +1,9 @@
+{
+  "folders": [
+    {
+      "path": "/app/test-images",
+      "fileTypes": ["jpg", "jpeg", "png", "tif", "tiff"],
+      "targetFolder": "Test Images"
+    }
+  ]
+}

@@ -1,0 +1,110 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Image {
+  id            Int       @id @default(autoincrement())
+  filename      String    @unique
+  originalName  String    @map("original_name")
+  filePath      String    @map("file_path")
+  thumbnailPath String?   @map("thumbnail_path")
+  fileSize      BigInt    @map("file_size")
+  format        String
+  width         Int?
+  height        Int?
+  isCorrupted   Boolean   @default(false) @map("is_corrupted")
+  uploadDate    DateTime  @default(now()) @map("upload_date")
+  lastModified  DateTime  @default(now()) @updatedAt @map("last_modified")
+  metadata      Json?
+  source        String    @default("local")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  syncLogs      SyncLog[]
+  uploadFile    UploadFile?
+  
+  folderId      Int?      @map("folder_id")
+  folder        Folder?   @relation(fields: [folderId], references: [id])
+
+  @@index([uploadDate(sort: Desc)])
+  @@index([format])
+  @@index([source])
+  @@map("images")
+}
+
+model Folder {
+  id        Int      @id @default(autoincrement())
+  name      String
+  parentId  Int?     @map("parent_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  parent    Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id])
+  children  Folder[] @relation("FolderHierarchy")
+  images    Image[]
+  uploadBatches UploadBatch[]
+
+  @@map("folders")
+}
+
+model SyncLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  imageId   Int?     @map("image_id")
+  timestamp DateTime @default(now())
+  details   Json?
+  status    String   @default("success")
+  
+  image     Image?   @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  @@index([timestamp(sort: Desc)])
+  @@index([action])
+  @@map("sync_log")
+}
+
+model UploadBatch {
+  id            Int      @id @default(autoincrement())
+  batchId       String   @unique @map("batch_id")
+  totalFiles    Int      @default(0) @map("total_files")
+  totalSize      BigInt   @default(0) @map("total_size")
+  successCount  Int      @default(0) @map("success_count")
+  failedCount   Int      @default(0) @map("failed_count")
+  corruptedCount Int     @default(0) @map("corrupted_count")
+  folderId      Int?     @map("folder_id")
+  folder        Folder?  @relation(fields: [folderId], references: [id])
+  timestamp     DateTime @default(now())
+  details       Json?
+  uploadMethod  String   @default("batch") @map("upload_method") // "single", "batch", "json"
+  
+  files         UploadFile[]
+  
+  @@index([timestamp(sort: Desc)])
+  @@index([uploadMethod])
+  @@map("upload_batches")
+}
+
+model UploadFile {
+  id            Int      @id @default(autoincrement())
+  batchId       String   @map("batch_id")
+  batch         UploadBatch @relation(fields: [batchId], references: [batchId], onDelete: Cascade)
+  imageId       Int?     @unique @map("image_id")
+  image         Image?   @relation(fields: [imageId], references: [id], onDelete: SetNull)
+  filename      String
+  originalName  String   @map("original_name")
+  fileSize      BigInt   @map("file_size")
+  status        String   @default("pending")
+  isCorrupted   Boolean  @default(false) @map("is_corrupted")
+  error         String?
+  timestamp     DateTime @default(now())
+  
+  @@index([batchId])
+  @@map("upload_files")
+}
